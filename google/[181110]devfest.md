@@ -1,0 +1,538 @@
+# GDG DevFest Seoul 2018
+- 18.11.10, 세종대학교 광개토관
+- Written By. wshid(kso4013@gmail.com)
+---
+## GCP를 활용하여 코딩 없이 앱 서비스 분석 인프라 구축한 삽질기
+---
+- BankSalad라는 자산 관리 서비스 플랫폼
+- 고객들의 서비스 선호도 조사
+    - MAU(월 활성 사용자)
+        - 해당 월에 한번이라도 접속하는 사람
+    - 유지율(Retention) 등
+        - 사용자들이 꾸준히 사용하는가
+        - 서비스 종류에 따라 10%만 유지되도 괜찮을 수 있음
+- FireBase 사용
+    - 무료 앱 서비스 분석이 가능하니
+    - 터널 분석(깔때기?)
+        - 서비스에서 의도한 행동/단계에 대해 분석
+        - 각 단계별로 얼마나 사용자들이 도달하는가
+            - first_open
+            - 회원 가입
+            - 금융정보 연동
+        - 단계를 나누어, 얼마나 많은 사용자들이 유입되는가 확인
+        - 다음단계까지의 이탈률 계산이 계산
+            - 이탈률이 많을소록 문제 가능
+    - 기본적인 분석은 firebase로만 가능함
+- 기능 개선
+    - 인증 관련
+        - 이메일 가입, 카카오 계정, 구글 계정 등
+        - 인증서, 공인인증서 등
+    - 금융 신청 관련한 광고가 주수입원
+        - 중요한 정보, 빨리 정보 파악을 해야함
+    - Firebase 분석은 복잡한 요구사항에 대한 한계 존재
+- 직접 추출 및 중요한 지표 자동화
+    - FireBase Raw Data - BigQuery
+        - 대규모 데이터 분석용 웨어 하우스
+    - BigQuery를 WareHouse로 두고, 서비스 로그 분석을 한 곳에서 관리
+    - 요금제 업그레이드, BigQuery 데이터 내보내기
+- BigQuery의 장점
+    - 데이터를 모으고 내보내는 것이 편함
+    - Google Playstore 다운로드 수등, 다양한 정보 확인 가능
+    - GCP 요금 데이터 분석 등 가능
+    - 복잡한 분석에 대해 BigQuery에 올리고 사용
+- Google Data Studio
+    - 중요한 데이터 대시보드 자동화
+    - PlayStore 통계 Raw Data에 대해
+    - 일일 설치, 유입채널, 국가별 설치 수 등 쉽게 가능
+    - Scan은 비싸다
+        - 1.2PB, $6,000
+- Scan을 왜 많이 쓰는가?
+    - 하루에 15GB의 로그
+    - BigQuery에 2TB 적재중
+        - 1 Full Scan => $10
+    - 데이터 스튜디오에서 데이터 갱신시 마다 스캔
+- 해결해야 함
+    - 전체 데이터에 비해 대시보드에 제공할 결과 데이터는 작다
+    - 매일 전체 데이터가 아닌, 전처리된 중간 테이블 두기
+    - 매일 View의 결과 데이터를 물리적 Table로 둘 필요 없음
+- Data Prep, DataFlow
+    - 구글 툴
+    - 전처리할 동작을 정의, 데이터 전처리 수행
+- Data Prep  : 데이터 전처리 작업 서비스
+    - 데이터 소스 선택
+    - 전처리 동작 선택
+        - 단순 엑셀 작업 정도로 처리가 가능
+    - 목적지
+- DataPrep에서 정의된 Flow들을 Data Flow에서 수행
+    - BigQuery에도 부가가능으로 제공함
+        - Query Secheduling
+- 적용 전과 후 비교
+    - $200 -> $25
+- [rainist](https://rainist.com/recruit)
+
+
+## 딥러닝을 활용한 음성기반 파킨슨병 진단기 제작기
+---
+- 파킨슨병을 할 때 확정할만한 판단 요인이 없다고 함
+    - 의사가 임의로 판단하는 경우가 많음
+    - 오진률 47%
+        - 이를 머신러닝으로 해결하기
+- 파킨슨병을 진단하기
+    - 보통 같은 모음을 말하는 등의, 특정 발음으로 판별할 수 있다고 함
+    - 하지만 기존은 영어이기때문에, 한국에 해당하는 모델은 없을까?
+- 소규모 언어 데이터로 파킨슨병 진단 모델을 만들기
+    - Data Augmentation
+        - Rolling, Stretching, Adding Noise
+        - Transfer Learning
+            - Reference로 러닝
+            - 마지막 노드만 추후 학습
+            - 하지만 이 마저도, 제대로 학습이 되지 않음
+        - Modified Incremental Traning
+            - 1차 학습, Target을 미리 정하고 학습
+            - 2차 학습, 대부분의 데이터 학습 하지만, salias를 구한후, 이를 판단
+                - salias가 크면 많은 feature 차이, 적당한 량 조절하여 작은 것만 학습시키게 된다.
+        - GAN Domain Transfer
+            - 특정 도메인을 잡아 이동하는 것
+            - language 자체의 오차를 학습하여 revise
+        - Input file
+            - spectrogram 이미지를 잡아 학습
+        - 사용한 모델
+            - VGG-16
+            - Inception V3
+            - 3-Layer CNN
+            - MobileNet
+            - CycleGAN을 사용하여 accuracy가 96.5%까지 나옴
+- VoiceDoc
+    - 실제 사용자들이 사용할 수 있도록 디바이스 만들기
+    - 딥러닝 기반의 음성기반 파킨슨병 진단기구
+    - 모델 경량화를 해야함
+        - 다양한 디바이스에서 돌아가게끔 하려면
+- DeepLearning Hardware
+    - 단순 소프트웨어가 아닌, 하드웨어적으로 구현하기
+        - 많은 환경 변화가 존재
+    - Server 방식
+        - 서버에서 딥러닝 추론 결과를 받아오기
+        - 서버에 계속 데이터가 존재, 재학습이 가능
+    - Local 방식
+- Local DeepLearning HardWare
+    - Tensorflow에서 개발한 모델을 임베디드 시스템에서 개발
+        - TFLIFE Conversion
+    - TFLite 파일 만들기
+        - 모델 개발 및 학습
+        - 이후 해당 모델을
+            - Graph, checkpoint
+            - Frozen graph
+                - freeze_graph.py
+                    - pb와 ckpt를 로드하여 freezing pb로 만들어줌
+                - code freezing
+                    - pb를 로드하는 것이 아닌, 학습 후 코드 내에 graph, weigth가 들어온 것을 정리
+                - 이 두가지중 하나를 골라 사용
+            - .tffile
+                - 노드 이름 파악
+                    - TensorBoard에서 노드 이름 확인
+                    - 코드상에서 graph를 가져와 input/output노드 가져오기
+                - 함수
+                    - from_keras_model_file
+                    - from_saved_model
+                    - from_frozen_graph(pb, checkpoint)
+                    - from_session
+    - Android Environment Setting
+        - Rasberrypi에서 android를 돌리기
+            - Andorid Things 사용하기
+                - 안드로이드 제공 API를 전부 사용할 수는 없음
+                - support 여부 파악할 것
+        - OS 다운로드 후 support h/w를 확인하기
+        - cmd로 접속하여 usb를 통한 설치
+        - ethernet/ wifi adb connect
+        - 안드로이드 스튜디오 연결
+    - Input devices
+        - 안드로이드 휴대폰과 다르게 직접 지정을 해주어야 함
+        - GPIO, PWM 등의 여러 인풋 관련 지원
+            - Permission 설정을 해주어야 함
+                - Peripheral
+            - 연결 장치 리스트 확인
+            - 각 장치 설정/해제를 하고 IO에 맞게 통신
+        - 다른 디바이스를 사용하려면, github에 만들어 놓은 예시가 있음
+            - 비공식 드라이버들이 많음
+            - 아니면 IDC File을 직접 만들어줘야 함
+    - Android App Schemetic
+        - 음성 인식
+        - spectogram으로 변환
+        - 모델 input(tffile)
+        - 평가
+
+## 마이크로서비스 아키텍처에 아키텍처서비스 끼얹기(feat. Istio)
+---
+- 개발자가 개발에만 집중하는 방법
+    - 서비스매시를 통하여
+    - 비즈니스로직에 대해
+        - 인프라 로직이 아닌
+- 생산성
+    - 소스가 커지면서 발생하는 문제들
+- 문제를 해결하는 방법
+    - 더 정교한 프로젝트 설계
+    - 서버리스(Serverless)
+        - Image Resizing, 추천서비스 등을 따로 분리
+    - 마이크로서비스 아키텍처(MSA)
+        - NetFlix, Amazon에서 사용
+- 마이크로 서비스 도입
+    - 하나의 거대한 e-commerce 소스가
+        - 사용자, 제품, 주문 등으로 분리
+    - 서비스가 분리되고 특정 서비스 호출등의 여러 로직이 생겨난다.
+        - 어디서 어떤 서비스가 참조하는지에 대한 명세가 확실하게 되어야 함
+    - 설계된 서비스, 자동화된 프로세스 등이 가능해짐
+    - 해당 서비스 장애가 났다고 해서 특정 서비스에 국한된 문제가 되지 않음
+    - 이전에는 한 PC에만 로그를 확인하면 되지만, 여러 컴퓨터에서 로그 확인해야하는 문제
+    - 디버깅이 어려움
+        - 어떤 서비스에 대해서 문제가 발생하였는지 다 찾아야 함
+    - 트랜잭션 오류
+- 서비스메시(마이크로서비스, kubernetes)
+    - 단일 시스템 -> 분산 시스템
+    - 실제 서비스가 쪼개지면서 REST API를 사용하는 등의 통신이 필요함
+    - 네트워크 문제
+        - 단일 서비스의 경우 내부 프로시저이기 때문에 문제가 발생하지 않음
+        - 생각보다 네트워크를 믿으면 안됨
+- 안정적인 서비스를 위해
+    - Circuit Breaker(서킷 브레이커)
+        - 특정 서비스에서 장애가 발생했을 때, 다른 서비스까지 영향을 받을 때
+        - 차단을 하여 빠르게 에러 처리 리턴하는 방법
+    - 재시도
+        - A -> B서비스 호출
+        - 고객에게 에러라고 바로 판단하는 것이 아닌, 재시도 진행
+        - 고객은 최종적으로 성공했다고만 판단
+    - 로드밸런서
+        - 서비스별로 각각 배포되기 때문
+    - 서비스 디스커버리
+        - 서비스의 개수 증가에 따라 Service Discovery에 등록을 해주어야 함
+        - 그래야 여러 서버로 전송이 가능해짐
+    - 90%:10%
+        - 신서비스 도입시, 점진적으로 배포하는 방법
+    - 중앙에서 로그 및 대시보드 사용
+- 재시도에 대해
+    - 서비스 요청, 실패시 n번 요청
+    - 코드를 작성하여 특정 라이브러리로 묶어 사용해야함
+        - 대신에 한번 사용시에 그만큼으ㅢ 코드가 더 돌아가게 됨
+    - Proxy를 사용하기
+        - A가 B를 직접 호출하는 것이 아닌, 특정 Proxy로 호출 해야함
+        - A -> Proxy -> B proxy -> B
+            - Proxy에게 Retry 3에 대한 코딩을 하면 됨
+        - 각 서비스 별로 Proxy를 하나씩 붙이게 됨
+        - Microservice는 직접 통신이 아닌, proxy를 가지고 통신하게 됨
+        - 이렇게 되면 특정 라이브러리 추가 없이, 프록시만 붙이면 됨
+        - Proxy 툴
+            - LINKERD
+                - JVM/scala로 구현
+                - 다양한 서비스에서 활용
+                - Rust로 2.0발표
+            - envoy
+                - C++로 개발
+                - 작고, 가볍고 빠름
+                    - JVM보다 빠름
+            - Istio
+                - Google 개발
+                - envoy 발전 모델
+                - Kubernetes 연동
+                - 중앙에서 Control을 하여 업데이트 할 수 있도록 구성 가능
+                - 단순히 envoy proxy 설정 뿐만 아니라, 통신 로그 수집이 가능
+- Istio
+    - 다양한 기능 제공
+        - Service Discovery, Load Balancing, ...
+    - Routing Management
+        - 서비스를 특정 비율(95:5)와 같이 자동 분산이 가능
+        - 서버의 대수와 비율이 일치하지 않을때 편하게 처리 가능
+        - 헤더 값을 보고 분기 가능
+            - Header:Android -> 특정 서비스 등
+    - Fault Injection
+        - Microservice 테스트
+        - 특정 서비스를 느리게 동작 시키기
+            - 무조건 5초 이후 응답 등
+    - Security
+        - **envoy - envoy proxy** 간의 통신
+        - 특정 TLS를 할때 암호화 할 수 있도록 함
+    - Distributed Tracing(분산 추적)
+        - 여러 분리 서비스에 대해 얼마나 시간이 걸렸는지 파악 가능
+        - Istio만 쓰면 추출 가능
+        - 코드 작성이 필요 없음
+        - proxy만 붙이면 됨
+    - Monitoring
+        - **프로메테우스**, ...
+            - [Prometheus](https://prometheus.io/)
+                - 
+        - 그라파냐를 사용하여 대시보드 사용 가능 
+    - Observability
+        - Kiali를 사용하여, Istio에서 담는 **프로메테우스** 정보를 담아 실시간으로 보여줄 수 있음
+        - 어떤 서비스가 문제가 있는지 파악 가능하다.
+- Istio 데모
+    - 요청 - 웹페이지(서비스) - 리뷰(서비스) - ...
+    - [github, istio-demo](https://github.com/subicura/istio-demo)
+- 결론
+    - 특정 언어에 종속적이지 않고, 어떤 언어, 어떤 프레임워크에서 사용 가능
+    - Istio 1.0이 나온지 3달 정도
+    - MicroService Arch- -> Cloud Native Architecture
+        - 요즘 추세
+    - **Docker(컨테이너), Kuberenetes(컨테이너 관리), Istio(분산된 컨테이너 제어 가능)**
+    - 플랫폼에 관리를 맡기고 개발에 집중을 할 수 있음
+
+## go와 gRPC로 함께하는 MicroService
+- github : [grpc-demo](https://github.com/EJSohn/microservice-with-go-and-grpc)
+---
+- go 언어
+- REST와 유사한 gRPC
+- Client Communication History
+    - Socket
+        - 네트워크 상태가 좋지 않을 때 에러 발생
+        - 서버가 즉시 응답할 수 없는 상태일 때
+        - 개발자의 부담이 크다
+    - RPC(Remote PRocedure Call)
+        - 원격지에 있는 코드를 로컬처럼 사용 가능
+        - 개발자는 Application만 신경쓰면 됨
+        - RPC는 CORBA, DCOM, RMI와 같이 Socket의 고질적 문제 해결하지 못함
+    - SOAP, REST
+        - SOAP - XML
+        - REST - JSON
+            - 현재 REST를 많이 사용
+- gRPC(google Remote Procedure Call)
+    - 대용량 db에서 사용되는 범용적인 기술
+    - 원격에 위치한 프로그램을 로컬에서 사용하게 하자
+    - 수많은 MicroService간의 통신
+        - 소켓 통신의 문제 해결
+    - 사내 RPC인 Stubby를 오픈소스화
+- gRPC 동작 방식
+    - Stub
+        - 네트워크 계층 중 App 전에 client Stub을 거치게됨
+        - 파라미터를 언어 중립적으로 변환시켜주는 일련의 코드
+        - Polyglot Programming이 가능
+            - 서로 다른 언어를 가지고 하나의 서비스나 프로그램을 짜는 것
+    - IDL(Interface Description Language)
+        - S와 C 사이의 인터페이스 정의
+        - Stub 코드 생성시 사용
+    - Protocol Buffers
+        - 구글이 만든 Serialization 매커니즘
+        - IDL을 토대로 사용하는 언어에 대한 stub와 service interface code 생성
+- gRPC의 동작 방식
+    - c++ Service - Ruby Client
+    - 특정 파라미터를 사용하면 gRPC Stub에게 보냄
+        - gRPC Stub은 언어 중립적인 바이트 코드 변환
+    - 서버 전송(Proto Request)
+    - 서버에서 Binary코드 해석
+    - 서버 내부 처리
+    - 클라리언트로 전송(Proto Response)
+- gRPC service demo
+    - go를 사용
+        - gRPC 관련 tool이 제일 많음
+        - Docker, Kubernetes, Packer 등을 만드는데 사용
+        - 문법이 쉽고 퍼포먼스가 좋음
+    - api.proto file
+        - syntax로 버전 설정(현재 최신 proto3)
+        - service
+            - 사용할 함수들이 정의될 구조체
+                ```
+                rpc GetPoint(profile) returns (Point) {}
+                ```
+        - message type
+            - service의 파라미터가 되는 값
+            - field type
+              - 주로 scalar 값으로 선언
+            - field number를 가짐
+              - binary 값으로 변환되었을 때 식별될 값
+    - protocl buffers
+        - 각 언어별로 service interface code 새생성
+        - 특정 패키지를 받아 사용하면 됨
+            - python경우 pip으로 설치 등
+        - api.pb.go
+            - type Profile struct 선언
+            - getAge, getName 함수
+                - 정의를 하지 않아도 Protocol Buffers가 자동으로 생성
+    - gRPC Go Server
+        - pb : imported service interface code
+- go에 대해
+    - Context
+        - 맥락을 위해 필요한 값을 전달
+        - go routine이 안전하게 실행될 수 있게 cancelation 기능 제공
+    - go routine
+        - go에서 사용하는 동시성 프로그래밍시 사용
+- 개발시 팁
+    - .proto 파일은 분리된 프로젝트에서 관리
+        - 많은 프로젝트 들이 공유하기 용이한 형태
+        - git의 **submodule**을 활용하면 편리
+    - .proto message 업데이트
+        - parameter가 바뀌었을 때
+    - load balancing
+        - low-latency가 필요한 경우에만 gRPC의 client-size LB를 추천        
+- gRPC의 장점
+    - 빠른 속도와 부수적인 장점
+        - HTTP/2 default, binary data, header compression, cancellation propagation에서 ㅂ라ㅡㄴ 속도
+        - Google App Engine n1-high-cpu-16에서 CPU당 11배 처리 속도 증가
+- gRPC의 단점
+    - 번거로운 테스트
+        - 간단한 HTTP 요청으로 테스트 할 수 없음
+- 기술 스택 선택
+    - REST, gRPC 한쪽으로 치우치지 않고 상황에 따라 선택적으로 설정이 가능
+    - gRPC의 Http Request Multiplexer를 사용하여
+        - REST(w/ JSON), gRPC의 요청을 둘 다 받을 수 있음
+    - 물론 gRPC Handler, HTTP Handler를 따로 구성 가능
+- Microservice에서 gRPC가 좋은 이유?
+    - 테스트 하기 쉬움
+    - 배포하기 쉬움
+    - gRPC의 빠른 속도, network latency 최소화
+    - serverless 구현 가능
+
+
+## Chrominum/Blink는 어떻게 동작하는가?
+---
+- 모던 브라우저는 어떻게 동작하는가?
+- chromium의 경우 다양한 브라우저가 chrominum base로 돌아감
+    - 오페라, 엣지, 크롬 등
+- Chrominum/Blink 내부동작을 왜 알아야 하는가
+    - 브라우저 / 웹플랫폼 개발시 사용
+    - FE 개발시 성능 향상
+- Multi-process Architecture
+    - Process vs Thread
+        - 메모리 공간 차이
+    - Multi-process를 사용
+        - Crash가 나도 죽지 않음
+            - 하나의 탭이 죽어도 다른 탭에 영향을 미치지 않음
+        - Site Isolation(OOPIF)
+            - 보기엔 같은데, 다른 사이트(피싱 사이트 등)
+            - Iframe의 경우 다른 프로세스로 동작하기 때문에
+                - 피싱 사이트에서 내부 Iframe 객체의 자원 침범 불가
+    - Renderer / Brower
+        - 이 두가지로 운용됨(물론 다른 프로세스 많음)
+        - Renderer
+            - 일반적으로 그림을 그려주는 역할
+            - 웹컨텐츠
+        - Brower
+            - Brower의 UI 담당
+            - 외부와 소통(System call)
+- Blink Rendering
+    - 브라우저가 어떻게 동작하는가?
+    - 웹 브라우저에 사이트를 보여주기 위해서
+        - Rendering Engine
+        - Javascript engine
+        - Graphics Library(SKiA)
+    - Blink Engine의 Rendering
+        - Parsing
+            - HTMLDocumentParser
+                - 각 HTML코드에 대해 파싱
+                - DOM Tree
+        - Style
+            - DOM Parsing이 일어나는 동안
+            - CSSParser
+                - StyleSheet Content 자료 구조 작성
+                    - ```marin: 0``` 과 같은 내용을 담은 콘텐츠
+            - DOM tree를 Traverse하면서 최종 값 리턴
+                - ComputedStyle
+                    - 지정을 하거나, CSS Spec에서 정의된 기본 값
+            - 개발자 도구에서 Computed 탭에서 확인 가능
+            - **CSSParsing은 DOM을 생성하는 중간에,**
+                - **Syte Update는 DOM 생성 후에 일어남**
+        - Layout
+            - 실제로 **화면에 표시 될 Object** 결정
+            - ```<head>, <... style="display:none;">```와 같이 표시 안될 것 구분
+            - LayoutTree를 생성함
+                - 구성할 노드들은 **화면에 표시 될 노드**만 해당함
+                - 각 노드는 LayoutObject
+            - LayoutTree를 돌면서 **어떤 위치에 어떤 사이즈**로 배치할지 결정
+            - LayoutTree를 돌면서 경계선 계산을 진행
+                - width나 height등
+                - 립플로우 과정이라고 함
+        - Layerization
+            - 어떻게 화면에 그릴지 결정은 된 상태
+            - Stacking Order(Paint Order)
+                - **z-index**가 설정된 경우, 그리는 순서가 달라지게 됨
+                - DOM의 순서가 아닌 별도의 순서에 따라 그림을 그려야 함
+            - LayerTree를 생성함
+            - LayerTree를 가지고 그림을 표현함
+        - Paint
+            - PaintLayer라는 트리의 정보가 LayoutObject에 있음
+                - LayoutObject는 Element에 대한 코드를 담고 있음
+            - 그에 따라 트리를 따라 Object를 **2D Object Library**를 사용하면 됨
+                - Chromium에서는 **SKiA**를 사용
+- Off main-thread rendering
+    - Blink Rendering은 모두 **main-thread**에서 일어남
+        - js를 실행시키는 요소
+    - V-sync Timeline
+        - 각 모니터의 주사율에 맞춰 V-sync를 동작시킴
+        - 그에 따라 프레임을 그리는 작업을 진행
+        - 이상적으로는, js와 painting등이 모두 빠르게 진행되어야 하지만,
+            - 실제로 그 시간을 맞추기가 어려움
+            - Frame-drop이 발생
+    - Frame-drop 없이 웹 페이지를 그리려면
+        - 그림 그리는 것을 미루기
+            - 많은 작업을 타 Thread로 넘기기
+                - 문제는 이미 구성된 정보들이 많기 때문에 자료 이동이 필요
+                - Lock 없이 작동 해야함
+                    - 그래서 그림을 그리는 것처럼 동작
+            - Recording
+                - 단순히 어디에 어떤 텍스트가 필요하다는 정보만 기술
+                    - Graphics 라이브러리를 로드하기 위한 정보
+                    - 해당 정보를 타 Thread에서 받아 그림을 그릴 수 있도록 처리
+                - 다 그림을 그리고 **Compositing**작업 시행
+                    - 하나로 합치는 과정
+                    - 이후 유저에게 그리게 됨
+            - 타 쓰레드에서 부하를 나누어 갖 됨
+                - **Thread Composition * Impl-side Painting**
+- Rendering 용어 정리
+    - Painiting
+        - 넓은 의미로 Rendering 과정 존재, 좁은 의미로 Rendering
+    - Recording
+        - Blink 관점에서 Painting, 그림을 그리는 연산을 기록하는 행위
+    - Rasterization
+        - Pixel Buffer에 그림을 그리는 행위
+    - Compositing
+        - 여러장의 그림을 합성하는 행위
+    - Drawing
+        - 그림을 사용자가 볼 수 있는 화면에 출력하는 행위
+- GPU Acceleration
+    - GPU 가속
+        - GPU를 사용
+        - 각종 변환(Translation)을 빠르게 할 수 있음
+        - 텍스쳐를 빠르게 합성할 수 있음
+            - Texture : BitMap 이미지
+    - Modern-browser의 대부분은 **GPU 가속** 사용
+        - **OpenGL** 사용
+            - 여러 회사의 GPU를 규격화, Open Driver
+        - OpenGL의 Interface가 직접 Chrominum에 탑재
+- GPU Compositing
+    - 브라우저가 생성한 Bitmap 이미지를 GPU 메모리에 캐시해두었다가 합성하는 것
+    - Record -> Raster -> Upload -> Draw
+        - Record: Main Thread
+        - Raster, Upload : Raster Thread
+            - GPU 가속을 사용하게 되면, 이를 GPU 메모리로 업로드
+                - Texture Upload
+        - Draw : Compositor Thread
+- Chrominum의 Texture Upload
+    - GPU Process
+        - 실제 그림을 GPU에 업로드하기 위해 사용
+        - OpenGL Call을 하기 위해 사용
+        - Renderer 프로세스와의 통신, IPC 사용
+    - Renderer와 GPU 프로세스간에 IPC 통신 및 GPU 메모리 업로드 작업 시행
+    - 큰 변화가 없으면 최대한 활용
+- Tiling
+    - 실제 512 단위로 타일을 나누어
+    - 변경된 내용만 업로드 하게 됨
+    - GPU memory에 Texture Upload가 되면
+        - 그것을 합성하거나 변환하는 것은 매우 빠름
+- GPU Compositing 효과
+    - Animation
+        - 두가지 이미지가 있다고 했을 때, 이미 Memory가 업로드 되어있기 때문에 빠름
+    - Scrolling
+    - Pinch Zoom
+        - 단순 사이즈에 대한 연산
+        - GPU가 가장 잘하는 것
+- 어떤 Element의 width 변경시
+    - width 연산시
+        - layout, composite등의 여러 연산을 재연산
+    - **transform**을 사용 한다면
+        - Composite만 됨, 빠름
+    - csstriggers.com에서 layout, composite 등의 정보 확인이 가능함
+        - 브라우저 연산을 확인할 수 있음
+- Graphics Primitive를 빠르게 그릴 수 있음
+    - 점, 선분, 단순 도형을 빠르게 그릴 수 있음
+    - shared memory를 통해, Renderer Process에서 OpenGL로 바로 요청 보내기
+        - GPU Rasterization
+            - 안드로이드에서만 사용 가능함
+            - 아직 완벽히 구현되지 않음
+            - ```<meta name="viewport">```를 사용하게 되면 40배 정도 빨라지게 됨
+    - 해상도가 높을 수록, 여러번 그리면 당연히 성능 떨어짐
+
