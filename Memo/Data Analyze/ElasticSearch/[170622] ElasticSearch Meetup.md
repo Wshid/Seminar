@@ -1,0 +1,147 @@
+## ElasticSearch Meetup
+- 17.06.22 19:00
+---
+- 5.4 버전의 특징 -> 대부분의 stack이 올라갔다고 함
+- ES의 경우 큰 변화는 없음
+     - radio query가 빨라짐
+- kibana
+     - Dashboard : Edit Mode와 View Mode가 구분 되었음
+     - Viusalize
+          - 아이콘 형태로 변경
+          - Visual Build 메뉴가 추가됨
+     - pipeline aggriation이 가능해짐
+     - Machine Learning 모듈이 추가됨
+          - Anomality에 특화되었다고 함
+          - 초당 10만 doc이 가능함
+               - 기존에 사용된 패턴과는 다른 지점(Anomaly)한 곳을 찾아 내줌
+          - Multiple metric이 가능함
+               - 이를 확인하기 위해서는 Anomaly Explorer에서 찾아야 함
+
+
+### Web Analytics at Scale with Elasticsearch
+- 네이버 블로그 통계를 ES를 사용하여 서비스를 제공
+- 콘텐츠 소비 통계
+- 최초 Architecture와 나중 Archetecture
+- Data Pipelines
+- 콘텐츠 소비 통계 : 회사 내부 직원용이 아닌, 네이버 사용자를 위한 서비스
+     - 따라서 High Throughput , Low latency
+          - => ES!!
+- 현재 블로그 통계를 확인하면 ES를 사용했다고 함
+- Lambda Architecture : Speed layer와 batch layer를 구분하여 사용함
+     - 실시간이라 좋지만,
+          - 복잡하고 , Speed/batch가 구분되어 있다는 단점이 있음
+- 그래서 ES로 Speed Layer와 Batch Layer를 같이 하려고 했음
+     - -> Speed는 오늘날, Batch는 이전날
+          - => 엄청 고생..?
+- Logstash -> kafka -> Storm  ->...
+- 초기 A는 구조가 간단하고 Pipeline도 간단했음
+     - 운영도 쉬었으며, 실시간 처리에도 유능함
+     - 하지만..
+          - 데이터가 작았을 때는 잘 돌아갔지만, 데이터가 커지니 잘 돌아가지 않았다고 함
+- ES is not good for the Data Source for pre-aggreation
+     - MapReduce : 코딩하기 어렵고, shuffle 단계 사이즈가 너무 커서 요즘 사용하지 않다고 함
+     - Storm : exactly-once를 이용하기 어려움
+- es-hadoop을 사용
+     - 32보다 크다면 에러가 남
+     - 31개의 노드에서만 동작한다고 함
+- 전체 데이터를 읽을 때
+     - ES Hadoop의 경우 958초가 걸렸다면 Parquet는 1.8초가 걸림
+- ES node의 루씬 데이터를 ES가 읽고, coordinator로 로드하여 worker(yarn)으로 뿌려주지만
+     - parquet는 간단한 체계를 거침
+- ES index size차이에서도 parquet이 훨씬 적음
+- 결과적으로
+     - SparkSQL을 사용하여 검색후 savetoES를 통해 저장
+- Proven Architecture
+     - Ingestion : nginx access log => logstash => Kafka 1(Raw log)
+     - Kafka 1 => Spark Streaming(Transform) => Kafka 2
+     - Kafka2(Refined Log) => .. 각종 작업
+     - Realtime ES Cluster, nBase-ARC => ,,,
+     - 이를 블로그 브론트 엔드, 오늘 지표라는 작업에서 사용자에게 보일 수 있도록 함
+- Parquet File => SparkSQL => Batch ES Cluster
+     - MapReduce 대신에 SparkSQL 사용
+     - Batch ES Cluster -> Node.js => End Users
+- Data Pipelines
+     - 단순히 ES만 사용하는게 아님
+     - Parquet Files를 사용하여 SlparkSQL,impala,Zeppeline을 이용함
+          - 서비스 중인 ES 부하가 없음
+          - 원본 데이터 오래 보관 가능
+          - pre-aggregation되지 않은 다양한 자료 추출이 가능
+- ES가 매우 좋음
+     - Low latency, High Troughput
+     - 쉬운 클러스터 운영, 안정성
+     - Logstash, Kibana, Marvel,
+     - 빠른 입수 속도
+     - 다양한 질의, Aggregation 함수
+     - 하지만..
+          - No Silver Bullet : 완벽한건 있을 수 없음
+- Lucene에 대해
+
+### 대용량 데이터 통계 시스템을 구축하면서 데이터가 많아짐에 따라 겪었던 시행 착오
+- 웹의 특성상 Cardinality가 상당히 높음
+     - pre-aggregation의 효과가 크지 않음
+     - Heap 사용량 증가 현상
+     - 다차원 분석
+     - pre-aggregation vs on-demand
+- Elastic Search Engine을 Database로 활용하기
+     - 검색엔진의 성능도 중요하지만,
+          - SQL에서 컨트롤이 가능할까?
+- 단어별 검색엔진
+     - 검색하고자 하는 내용을 입력하면, 검색 사이트에 있는 데이터베이스를 찾아 웹페이지로 보여주는것
+- 주제별 검색엔진
+     - 인터넷상에 있는 정보를 큰 범위에서 좁은 범위로 좁혀가며 찾는 방식의 검색엔진
+- 메타 검색엔진
+     - 인터넷에서 규모가 큰 검색엔진들에 사용자가 입력한 검색키워드에 대하여 의뢰한 뒤 결과를 가져오는 검색엔진
+- DB를 없애고 ES를 이용하여 운용이 가능할까?
+     - 많은 트래픽 때문에 캐시 서비스도 감당이 안되는 경우 발생
+     - DB에 몰리기 시작하기 때문에 서비스가 중단되는 경우 발생
+     - 일시적 동시 접속자들 때문에 DB에 부하가 걸려 서버가 뻗는 경우 발생
+     - 아무리 DB를 튜닝해도 속도개선의 해결의 기미가 보이지 않음
+- ES를 DB로 활용하기 위한 조건
+     - 표준 ANSI SQL문으로 제어가 가능함
+     - SQL로 CRUD 처리 가능
+     - DB에 ENTITY RELATION 구조를 Elastic inde로 유사하게 컨트롤
+     - 원본 DB 제어와 ELASTIC 제어가 동일 아키텍처 형태로 구성
+- RDB는 ENTITY간에 PK나 FK로 연결이 가능함
+     - 하지만 Elastic Index에는 그런게 없음
+          - 대신에 Parent - child와 같은 Relation 구상이 가능함
+     - ERD에 따라 중간 색인 테이블을 만들어 이용할 수도 있음
+     ```
+     _parent:{
+          "type" : "main_recipes"
+     }, # 이와 같이 활용 가능
+     ```
+- Elastic Quert DSL를 이용하여 검색문을 작성하는 것은 쉽지 않음
+- Elasticsearch-sql 플러그인을 이용하여 sql을 ES에서 활용할 수 있다고 함
+     - 깃허브 따라가보면 됨
+- Query
+     ```SELECT * FROM bank WHERE age>30 AND gender = 'm'```
+- Aggregation
+     ```SELECT COUNT(*) ...````
+- 조인같은 경우도 서로 다른 인덱스간에 가능함
+- 문제는 CRUD가 잘 안됨..
+     - 지금 있는 sql 플러그인에 대해 지원을 하지 않는 다고 함
+     - ES-sql의 경우 READ만 제공이 되었다고 함
+- 검색엔진은 보통 Batch로 올리긴 하지만
+     - 실시간으로 올리게 되면 잘 동작하지 않음
+- Spring Data ElasticSearch + DruidDataSource
+- JDBC를 통한 제어
+     - 이를 통해 ES가 접근이 가능함
+          - 자바 프로그램을 통해 DB가 제어 가능하다
+- Index Server와 DB Server 동시에 구성
+     - Secondary하게 이중성을 유지
+     - DB 서버를 백업용도로 사용
+- DB보다 아무래도 Elastic이 분산 노드로 구성하다보니, 더 많은 저장 공간을 사용함
+- Elastic은 Schema-Free하므로
+     - 데이터를 전환시에 동일 환경에서 REsponse가 최대 10배 이상 향상될 수 있엇음
+     - DB는 백업 정도로 사용하며모든 데이터를 ES Search에서 사용함
+- Learning Link
+     - 허광남님 유투브, OKDEVTV 등을 활용하여 가능함
+     - 허민석님 인프런 강좌
+     - elastic.co 페이지 : 공식 페이지
+- Elastic를 통한 CRM 구축
+- Elasticsearch 인덱싱에 대한 성능 고려 사항
+     - 여튼 중요한 것에 대해서 한글 번역이 되어 있다고 함
+- 버전 5점대부터 head plugin 사용이 불가능 함
+- cross-cluster search가 버전 6점대에서 올라간다고 함
+- join과 distict의 경우 일부 third-party에서 지원한다고 함
+- ES에서 relation의 경우 많이 좋지 않다고 함
