@@ -4,19 +4,19 @@
 ### Workspace Structure
 - 01_Memo
     - wshid
-        - <folder>
-            - 
+        - ```<folder>```
+            - ```<files>```
     - foo
-        - <files and folders>
+        - ```<files and folders>```
     - bar
-        - <files and folders>
+        - ```<files and folders>```
 - 01_Slide
-    - <Seminar Name>
+    - ```<Seminar Name>```
         - Slides
-        - **link.md**
-    - <Conference Name>
+        - link.md
+    - ```<Conference Name>```
         - Slides
-        - **link.md**
+        - link.md
 - 02_Documents
     - Bigdata
     - AI/ML
