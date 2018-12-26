@@ -3,10 +3,6 @@
 - Written By. wshid(kso4013@gmail.com)
 ---
 
-
-## Keynote: Opening (Kostas Tzoumas, data Artisans)
----
-
 ### 실시간 빅데이터와 분산 처리 엔진 오픈소스 플랫폼 Apache Flink 소개
 ---
 - Realtime streaming data process
@@ -69,7 +65,7 @@
         - 로컬에서 parallel연산을 한다고 함
 
 
-## Real-time driving score service using Flink (김동원, SKT Data 기술원)
+### Real-time driving score service using Flink (김동원, SKT Data 기술원)
 ---
 - T-map
     - Driving Score
@@ -149,13 +145,11 @@
     - `a-b-d-c`순
         - early-fire를 동작 시킴 
             - `a-b-d`
-
-    - EaryResultEventTrigger를 깃헙에 있다고 함
-- [flink-examples](https://github.com/eastcirclek/flink-examples)
-- easticclek/flink-examples/.../EaryResultEventTimeTrigger.scala
-    - onElement : element가 들어올 때 마다 작업 
+    - EaryResultEventTrigger는 깃헙에 있다고 함
+        - [flink-examples](https://github.com/eastcirclek/flink-examples)
+        - easticclek/flink-examples/.../EaryResultEventTimeTrigger.scala
+            - onElement : element가 들어올 때 마다 작업 
 - prometheus
-    - 
 - metric은 flink의 meter를 설정하면 됨
 - histogram : 메세지의 크기 분포도 확인할 수 있음 
 - jitter
@@ -263,7 +257,6 @@
     - Do it first to Predicative / Filter-out operator
         - 셔플전에 먼저 쳐내기 
     - Repartition / Rescaling for bottle neck 
-        - 여러개의 머신을 사용하여 
+        - 여러개의 머신을 사용
     - Use Async Logic
-        - 바로 체크가 필요 없다면 
-    
+        - 바로 체크가 필요 없다면 사용
