@@ -211,6 +211,41 @@ MS 의 github 인수로 인해 Azure DevOps와의 시너지도 증가하는중
  > 이것은 Azure인가 AWS인가. Azure와 Python과 AWS가 함께하는 DevOps 콜라보 <br>
 이번 세션에서는 Python/Django 웹애플리케이션을 GitHub의 Repo에 올리고, Azure DevOps의 Pipelines 기능을 사용하여 지속적인 통합(CI)과 지속적인 전달(CD)을 수행하는 데모를 진행합니다. 특히 Azure DevOps를 활용해서 Amazon Web Service로 배포하는 데모는 상당히 인상적입니다. Azure와 Python과 AWS가 함께하는 화끈한 시나리오. 듣기만해도 기대가 되쥬? 
 
+
+[github - codelab](https://github.com/allieus/demo-devops-launch)
+-   데모 프로젝트 기술 스택
+    -   django
+    -   python
+    -   vim
+
+-   Django
+    -   파이썬 백엔드 풀스택 웹프레임워크
+    -   재즈 기타리스트 Django Rehart? 이름을 따서 만듬
+
+-   사용할 AWS 서비스
+    -   AWS Elastic Beanstalk
+    -   -   
+
+-   Demo에 사용할 GitHub 저장소
+
+-   로컬에서 Elastic Beanstalk로 배포를 한다면???
+    -   Credentials settings
+    -   Test 수행
+        -   python manage.py test
+    -   정적 파일 수집 및 업로드
+        -   python manage.py collectstatic
+    -   awsebcli
+
+-   github 저장소와 azure pipelines 연동
+    -   Azure pipelines를 사용하는 OSS 프로젝트들
+
+-   빌드 설정
+
+-   릴리즈에 필요한 세팅들
+    -   AWS Tools for Microsoft Visual Studio Team Services 설치
+
+데모위주 세션이기 때문에 추후에 발표자료 첨부함
+
 ## 디자인미 팀의 Azure DevOps 실제 적용사례
  > 뇌에 그냥 넣어주는 소확행 실제사례. 실시간 배포를 실시간으로 경험하는 은혜로운 시간 <br>
 디자인미의 feature 팀에서 Azure, iOS, Android, Windows 등을 대상으로 하는 서비스를 만들기 위해 Azure DevOps를 어떻게 활용하고 있는지 살펴봅니다. Azure Boards를 활용하여 팀원에게 작업항목을 할당하고 팀원이 코드를 PR하면 코드 리뷰와 빌드, 테스트를 거쳐 자동으로 기능이 완료되는 마법같은 리얼타임 액션을 실시간으로 여러분의 눈속에 비춰드립니다. 3월말에 경험하는 확실한 소확행. 놓치지 않을거예요.
