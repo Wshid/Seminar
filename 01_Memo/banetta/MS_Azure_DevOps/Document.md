@@ -205,6 +205,8 @@ MS 의 github 인수로 인해 Azure DevOps와의 시너지도 증가하는중
         -   ARM 템플릿
             -   json 기반을 통한 리소스 그룹 생성 및 WebApp 생성
 
+대분 데모 진행이기도 하고 굉장히 빠른 탬포로 진행되기에 차후 발표자료를 참고하여 작성할 예정
+
 ## Azure Pipelines, Python을 CI, AWS로 CD 프랙티스
  > 이것은 Azure인가 AWS인가. Azure와 Python과 AWS가 함께하는 DevOps 콜라보 <br>
 이번 세션에서는 Python/Django 웹애플리케이션을 GitHub의 Repo에 올리고, Azure DevOps의 Pipelines 기능을 사용하여 지속적인 통합(CI)과 지속적인 전달(CD)을 수행하는 데모를 진행합니다. 특히 Azure DevOps를 활용해서 Amazon Web Service로 배포하는 데모는 상당히 인상적입니다. Azure와 Python과 AWS가 함께하는 화끈한 시나리오. 듣기만해도 기대가 되쥬? 
