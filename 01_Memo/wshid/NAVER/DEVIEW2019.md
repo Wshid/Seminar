@@ -124,6 +124,16 @@
   - 검색 로그에 특화된 UDF를 만들어 운영
 
 ## Pinpoint는 어떻게 observability를 강화했는가
+### 소개
+- Monitoring vs Observability
+  - Monitoring : 시스템 관찰
+  - Observability : 자세하게 메트릭 확인, 서비스 상태 확인
+- 단순 `java opt`만으로 구동이 가능함
+  ```bash
+  JAVA_OPTS="$JAVAOPTS -javaagent:$PINPOINT_HOME/pinpoint-bootstrap-1.9.0.jar -Dpinpoint.agentId=$AGENT_ID -Dpinpoint.applicationName=$APPLICATION_NAME"
+  ```
+- serverMap
+- ... 큰 관련 없음
 
 ## ms 단위의 Serverless World에서 Docker의 성능 한계 극복하기
 
@@ -132,3 +142,91 @@
 ## 쿠팡 추천 시스템 2년간의 변천사 (상품추천에서 실시간 개인화로)
 
 ## 스케일아웃없이 순간 급증하는 주문 처리하기 (Microservice with Kafka)
+### Microservice로의 전환
+- 서비스가 성장함에 따라, oracle db에서 병목 존재
+
+### 문제의 분석과 해결 방법
+- 한번의 주문, 많은 쿼리가 구동된다.
+- db의 사용률이 항상 높음
+- 데이터 베이스의 병목 해결 방법
+  - 주문 처리 한계의 증가
+    - 쿼리 튜닝 및 application 최적화
+    - 하지만 한계 도달
+  - `주문 처리 한계 < 일일 주문량`이 될 수 있도록, 튀는 내용을 잡도록 한다.
+- 트랜잭션 분리, 구간별 아키텍쳐 분리
+  - 한번의 주문으로 인해
+    - 기존 : 주문저장, 결제 처리, 이상 결제 체크, ... 등의 여러 작업이 `sync`로 구동
+    - 개선 : **주문저장**이외의 내용을 모두 `async`하게 처리하도록 개선
+- 결제 아키텍처
+  - ![image](https://media.oss.navercorp.com/user/13278/files/d4dd8500-fa91-11e9-95c1-9dd4b58656ba)
+  - 1. REST API를 호출하여, kafka에 메세지 전송
+  - 2. kafka 데이터를 consume하여 데이터 처리
+  - 3. kafka에 담긴 결제 결과를 컨슘하여 처리
+- 과부하가 걸리는 상황에서의 결제 이벤트
+  - 사용자 주문 및 kafka에 저장이후, 즉시 OK응답
+  - 비동기로 결제 프로세스를 진행
+  - 결제 결과는 차후 응답
+
+### Kafka 기반의 서비스 구현
+- Consumer Group
+  - consumer들의 집합
+  - 여러 partition으로 이루어진 topic을
+    - partition별로 담당하여 메세지를 처리함
+  - CG내에서는 단 한번 처리 됨
+- Rebalance
+  - CG의 Consumer 추가/삭제 시, 처리하는 partition을 reassign하는 작업
+  - `kafka 1.x`의 경우, rebalance시, **전체 consumer가 메세지 polling 중단**
+- **Consumer Application 배포의 어려움**
+  - 일반적은 Blue/Green Deploy가 불가능 함
+  - 배포를 위해 준비 동작 중, 바로 rebalance가 일어나 처리되기 때문
+    - switching 개념이 없다
+    - 자동으로 rebalance가 일어나 순차 배포가 불가능한 상황
+  - **Rolling Restart의 어려움**
+    - 1,2,3번 서버가 존재할때,
+    - 1번 서버 shutdown시, 2,3에서는 rebalance가 일어난다.
+- Consumer Application 배포 방법
+  - Kafka Client(Consumer) 모듈을 분리하여 배포에 어려움이 없도록 한다
+  - **EDA GATEWAY**라는 레이어를 두어 처리
+  - ![image](https://media.oss.navercorp.com/user/13278/files/c80d6100-fa92-11e9-85e3-00198c0b67d1)
+- 응답 메세지의 처리
+  - `REST`로 처리할 경우, 결제 결과를 바로 회신 가능
+  - `Event-Driven`일 경우, 결제 요청이 카프카에 저장
+    - 결제 결과를 확인할 수는 없음
+  - `REST` 요청일 때 결제 요청을 받은 서버와, 응답 메세지를 주는 서버가 다를 경우
+    - **req**와 **res**의 불일치 상황
+    - ![image](https://media.oss.navercorp.com/user/13278/files/5681e280-fa93-11e9-8f1c-76994de2edd5)
+- 응답 메세지의 처리 방법
+  - 다른 서버에 결제 결과를 요청하는 방식
+    - confluent, github에서도 이와 같이 처리
+  - CG를 사용하지 않고, 전체 결과를 각 서버가 모두 저장
+    - 실제 처리하는 양보다 몇배의 양을 처리해야 함
+  - Consumer 담당 Reply-Topic의 할당
+    - `reply-topic`이 병목이 될 수 있음
+    - **`topic`에 데이터가 남은 상태에서 해당 서버가 죽으면 방법이 없음**
+      - `reassign issue`
+- 응답 메세지의 처리 Solution
+  - 결과를 기다리지 않고, Callback IP를 통해 통보를 받는 형태로 처리
+  - ![image](https://media.oss.navercorp.com/user/13278/files/c6906880-fa93-11e9-9f05-5db5cfbea361)
+- Backpressure
+  - `메세지의 처리속도 = 성능`
+  - Multiple Consumer의 사용
+    - partition의 수만큼 consumer의 수 증가
+    - Kafka broker, 서비스 heap mem에 영향을 준다
+    - `rebalance/순간 중단 시간의 증가`
+    - 처리 속도 : `{ConsumerSize} TPS`
+  - Consumer + ThreadPool
+    - ThreadPool Size 변경을 통해 메세지 트래픽 제어 가능
+    - Partition수에 덜 의존적
+    - ![image](https://media.oss.navercorp.com/user/13278/files/63073a80-fa95-11e9-8e33-8dc8d7be1120)
+    - ThreadPool에서 수행되는 task가 오래 걸릴 경우, `Consumer.poll()`를 호출하지 않음
+      - 장애로 판단, 해당 인스턴스는 CG에서 제거
+    - java의 기본적인 ThreadPool을 확장한 방식
+    - ![image](https://media.oss.navercorp.com/user/13278/files/816d3600-fa95-11e9-8716-bc38069e1ab7)
+      - 세마포어는 timeout을 가지고 있다.
+      - 일정 이상동안 보내지 못할경우, 실패 메세지를 보내며
+        - `offset := -1` 과 같이 역순으로 조정
+    - 서버의 처리속도 제어가 가능해짐. => **throttling**
+
+### TODO
+- 메세지의 유실과 감지 부터 시작(p39)
+
