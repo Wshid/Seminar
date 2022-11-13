@@ -5,7 +5,3 @@
 - [연도]
   - [날짜]세미나명
     - 세션명 | 세미나명
-
-### Coordinator
-- 김시온(wshid) : https://github.com/Wshid
-- 김한상(Banetta) : https://github.com/banetta
