@@ -64,4 +64,4 @@
     - pub으로 사용자 정보를 요청
     - 동시에 모든 pod이 사용자 정보를 받아, emitter를 get한 동일한 Pod가 일을 처리하도록 함
 - 라이선스 이슈?
-  - ksql opensource를 활용했다고 함, 라이선스 이슈는 없었음
+  - **ksql opensource를 활용했다고 함, 라이선스 이슈는 없었음**
