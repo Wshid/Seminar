@@ -1,0 +1,156 @@
+## DE 모임
+
+### 두나무
+- 업비트 서비스 운영: 비트코인 거래소
+- AWS를 사용
+- NDAP: Ambari, Cloudera manager와 같은 툴
+- Data Warehouse역할을 둘다 수행
+  - EMR(상대적으로 적음), Redshift(매우 비쌈)
+  - $19, $182
+- SPoF는 가능하긴 하지만..
+  - **EMR**에서 여러 기능을 하려면, Single master를 해야함
+  - **Ranger**: **Lakeformation**이 필요한 클러스터를 별도 구축
+  - Single master가 필요하지 않은 서비스는 multi-master로 구축
+- Cloudera = EMR
+- 분석 니즈 충족을 위한 Zeppelin Customize 수행
+- 유저/데이터 권한 관리 방법
+  - 리소스: 2MM
+  - AWS IAM Role로 관리하는 방법
+    - Ranger, Lakeformation, EMRFS는 별로
+- Catalog도 가능은 함
+  - **glue 테이블** 사용
+  - glue를 meta db로 사용하면 **web에서 스키마 활용 가능**
+  - 단점은, aws login을 해서 step-by-step으로 찾아 들어가야 함
+  - glue를 가지고 **admin page**를 사용 가능
+- MWAA라는 **Managed Airflow** 사용
+  - **boto** - aws에서 많이 쓰는 라이브러리
+    - 이를 통해 개발해야하는 제약
+  - airflow, meta-db 직접 접근이 어려움
+- 배포 시스템
+  - ambari, cloudera manger처럼 배포 설정을 제공하지 않음
+  - 단순히 **스크립트 관리**로 해결
+- BI
+  - **QuickSight**가 제일 좋았음!
+  - 사내 시험, C레벨도 만족했던 경험
+  - Cloudera보다 좋은 경험
+- Data Lineage
+  - A라는 테이블을 만들기 위한 linkage graph
+  - 대표적으로 Atlas 툴이 있음
+  - 이를 **EMR**을 연동하려면 과거 버전만 사용 가능
+  - Atlas 연동이 쉽지 않을것으로 보임
+    - 연동 테스트를 하고는 있지만
+  - EMR 5, 6에 따라 기술셋이 달라짐
+- Trouble Shooting(AWS 사용에 따른)
+  - **Document가 부실**
+    - aws document에 종속적
+    - 참고하기 어려웠었음
+    - 그대로 수용해도 되지 않은 경우가 많았음
+  - **AWS Support 부실** 
+    - case를 사용하여 해결해도(3달동안 50개의 케이스)
+    - 하지만 고작 3개의 도움
+- AWS에서 데이터 플랫폼으로 유명한 플랫폼을 띄우기?
+  - **Snowflake**, **Databricks**: SaaS
+    - 민감 데이터가 전송 가능함
+    - 보안적인 측면에서 활용 불가
+  - Cloudera
+    - marketplace에 있어 사용은 가능함
+    - 다만 사용할지에 따라 문제가 잇음
+    - Hadoop 지식이 없다면 운영하기 어려움
+- **카카오뱅크**
+  - **AWS + Snowflake(SaaS)**
+  - 데이터 밖으로 나가서 가능하려나?
+  - **금융보안존**을 따로 만든다고 함
+- **하둡말고 Athena, Redshift를 썼다면?**
+  - seoul region 제약
+    - Athena, Redshift을 사용할때 전체 사용자의 리소스 제한이 있음
+    - 한 서비스에서 80%를 쓰게 되면, job delay가 발생함
+    - 비용대비 기능이 모자름
+  - Athena + S3만으로는 부족
+- snow가 금감원 보안인증을 받음?
+- **Research용도로 aws/snowflake를 쓰는건 문제가 없다고 함**
+
+#### Zeppelin + Impersonation
+- Line, Kerberos, LDAP 구성이 되어 있음
+- 어떤 데이터를 핸들링, Audit이 필요한 요건
+- AS-IS
+  - 유저추가: Ldap 추가 - kerberos 키 생성 - Ranger에 대해 path에 따른 권한 추가
+- zeppelin의 inpersonation 기능
+  - hadoop에서 사용 가능
+  - **login한 유저로 그 권한으로 데이터를 전송**할 수 있음
+  - user audit이
+    - user agent
+    - yarn spark user
+    - hive meta, 어떤 데이터 접근 가능
+  - **관련 내용 트래킹이 가능함**
+- **Ranger**라는 툴을 붙임
+  - Audit 탭에서 **어떤 테이블에 어떤 쿼리가 남았는지 확인 가능**
+- zeppelin에서 설정하는 방법
+  - PR merge가 되었다고 함
+  - hadoop core.site에 zeppelin user 생성
+  - hive쪽에 내용 세팅
+  - Per user, Per note
+  - `jupyter`를 사용하게 되면 **그래프 형태로 쿼리 결과를 볼 수 있음**
+- `Quicksite`는 쿼리를 보내지 못하는 초급자 전용
+- 현재 **Athena interpreter**를 준비하고 있다고 함
+- aws에서도 유사 기능 구현 가능
+  - 로그는 Cloudtail에 쌓임(audit log)
+  - 해당 로그가 쌓이게끔만 만들면 됨
+- Linux group과 IAM role과 연동
+
+#### Airflow 테스트 환경 한계 극복
+- 편리한 테스트 환경 -> 생산성 향상
+- **데이터 엔지니어가 테스트가 힘든 이유?**
+  - 라인의 경우 dev cluster의 테스트가 의미가 없던 상태(단순 기능 테스트만 가능)
+  - local에서도 real 접근은 불가
+- process 1
+  - 클러스터에서 테스트
+  - 코드가 공유되기 때문에, 사용중인지 팀원에 계속 공유 확인 필요
+- 다수의 팀에 airflow를 제공하는 방법?
+- 팀에서는 이미 **Airflow on k8s**를 사용함
+- k8s를 사용하여 독립적인 환경
+- **Jenkins에서 k8s를 구동**함
+  - 이후 slack이 구성되면 테스트 가능
+- feature -> develop 순으로 개발 진행
+- Jenkins에서 해당 airflow 회수 요청 가능
+  - namespace를 아예 제거하는 방향
+
+### 발표 피드백
+- Jenkins & Airflow를 같이 활용하는 이유
+- Spark Streaming과 같은 내용은 모니터링 하지 않는지
+- agroCD로 Airflow를 반영을 많이 함
+
+### SSG
+- **GCP**기반의 클라우드 플랫폼 구축
+- **BigData part, data warehouse part**
+- 가격비교 데이터 HDFS 적재
+- mongodb, oracle데이터를 가져와야 함
+- 서버 파일 
+- 실시간으로, 배치로 가져오는 방법
+  - 편리하게 가져올 수 있는 방법?
+- **GCP**
+  - Workflow, Asset Management, Monitoring, Data mart
+  - Data warehouse
+- sql 기반의 데이터 분석가, spark 기반의 데이터 분석가
+- **BigQuery**를 사용하여 데이터 컨트롤
+- 전체 BigQuery의 Query base로 감
+  - spark아니면 BigQuery
+- Embulk
+  - 스키마정보, 데이터 정보들이 필요
+  - 자동적으로 PDW의 경우 db의 스키마를 자동으로 변환할 수 있도록 procedure
+
+### 소모임
+- GCP쪽을 다룬다고 함
+- 라인플러스 Hbase를 사용하고 있음
+  - Hbase 5,6년
+  - 2017년도까지 RDBMS
+- 코호트 분석
+  - kafka-streams로 데이터 처리
+  - zeppelin 커스텀 하는 작업
+  - kafka/flume cloudera 탈출 경험
+- Hadoop 3.3
+  - hive, hbase, 
+  - 빅데이터 컨설팅 ..
+- 플라밍고, ambari를 기준으로 만든 플랫폼
+  - cloudera
+- 빅아이디언: 빅데이터 운영 플랫폼
+- 국내 솔루션 업체, 인력이 모자르다 함
